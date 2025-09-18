@@ -2,18 +2,34 @@ import psycopg2
 from psycopg2.extras import Json
 from faker import Faker
 import random
-import json
 
 fake = Faker()
 
 # PostgreSQL connection
 conn = psycopg2.connect(
     host="localhost",
-    database="DB_name",
+    database="job_stability",
     user="postgres",
-    password="Password"
+    password="Sp@495520"
 )
 cur = conn.cursor()
+
+# 1️⃣ Pehle purana data clear kar do
+cur.execute("TRUNCATE TABLE candidates RESTART IDENTITY CASCADE;")
+conn.commit()
+print("Old data cleared.")
+
+# 2️⃣ Columns ko FLOAT me convert karo
+cur.execute("""
+ALTER TABLE candidates 
+ALTER COLUMN job_stability_score TYPE FLOAT USING job_stability_score::FLOAT,
+ALTER COLUMN retention_risk_score TYPE FLOAT USING retention_risk_score::FLOAT,
+ALTER COLUMN long_term_association_score TYPE FLOAT USING long_term_association_score::FLOAT,
+ALTER COLUMN monetary_motivation_score TYPE FLOAT USING monetary_motivation_score::FLOAT,
+ALTER COLUMN cultural_fit_score TYPE FLOAT USING cultural_fit_score::FLOAT;
+""")
+conn.commit()
+print("Columns converted to FLOAT.")
 
 def random_json_field():
     return Json({
@@ -21,6 +37,7 @@ def random_json_field():
         "number": random.randint(1, 100)
     })
 
+# 3️⃣ Naya dummy data insert karo
 for i in range(100000):
     name = fake.name()
     email = fake.email()
@@ -38,12 +55,12 @@ for i in range(100000):
     raw_text = fake.text(max_nb_chars=200)
     form_data = random_json_field()
     
-    # Random scores (as text)
-    job_stability_score = str(random.randint(0,100))
-    retention_risk_score = str(random.randint(0,100))
-    long_term_association_score = str(random.randint(0,100))
-    monetary_motivation_score = str(random.randint(0,100))
-    cultural_fit_score = str(random.randint(0,100))
+    # 🎯 Random FLOAT scores (0–100 range)
+    job_stability_score = round(random.uniform(0, 100), 2)
+    retention_risk_score = round(random.uniform(0, 100), 2)
+    long_term_association_score = round(random.uniform(0, 100), 2)
+    monetary_motivation_score = round(random.uniform(0, 100), 2)
+    cultural_fit_score = round(random.uniform(0, 100), 2)
 
     cur.execute("""
         INSERT INTO candidates (
@@ -66,4 +83,4 @@ for i in range(100000):
 conn.commit()
 cur.close()
 conn.close()
-print("Done! 100,000 dummy candidates inserted.")
+print("✅ Done! 100,000 dummy candidates inserted with FLOAT scores.")
