@@ -1,0 +1,69 @@
+import psycopg2
+from psycopg2.extras import Json
+from faker import Faker
+import random
+import json
+
+fake = Faker()
+
+# PostgreSQL connection
+conn = psycopg2.connect(
+    host="localhost",
+    database="DB_name",
+    user="postgres",
+    password="Password"
+)
+cur = conn.cursor()
+
+def random_json_field():
+    return Json({
+        "dummy": fake.sentence(),
+        "number": random.randint(1, 100)
+    })
+
+for i in range(100000):
+    name = fake.name()
+    email = fake.email()
+    phone = fake.phone_number()
+    linkedin = f"https://linkedin.com/in/{fake.user_name()}"
+    skypeId = fake.user_name()
+    gender = random.choice(["Male", "Female", "Other"])
+    aadharCardNumber = fake.ssn()[:12]  # just dummy
+    panCardNumber = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=10))
+    skills = random_json_field()
+    experience = random_json_field()
+    education = random_json_field()
+    projects = random_json_field()
+    certifications = random_json_field()
+    raw_text = fake.text(max_nb_chars=200)
+    form_data = random_json_field()
+    
+    # Random scores (as text)
+    job_stability_score = str(random.randint(0,100))
+    retention_risk_score = str(random.randint(0,100))
+    long_term_association_score = str(random.randint(0,100))
+    monetary_motivation_score = str(random.randint(0,100))
+    cultural_fit_score = str(random.randint(0,100))
+
+    cur.execute("""
+        INSERT INTO candidates (
+            name,email,phone,linkedin,skypeId,gender,aadharCardNumber,panCardNumber,
+            skills,experience,education,projects,certifications,raw_text,form_data,
+            job_stability_score,retention_risk_score,long_term_association_score,
+            monetary_motivation_score,cultural_fit_score
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        name,email,phone,linkedin,skypeId,gender,aadharCardNumber,panCardNumber,
+        skills,experience,education,projects,certifications,raw_text,form_data,
+        job_stability_score,retention_risk_score,long_term_association_score,
+        monetary_motivation_score,cultural_fit_score
+    ))
+
+    if (i+1) % 1000 == 0:
+        conn.commit()
+        print(f"{i+1} rows inserted...")
+
+conn.commit()
+cur.close()
+conn.close()
+print("Done! 100,000 dummy candidates inserted.")
